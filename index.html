@@ -568,7 +568,7 @@
         height: var(--mobile-base-h);
         min-height: 0;
         padding: 8px;
-        grid-template-columns: minmax(0, 1fr) minmax(126px, .78fr);
+        grid-template-columns: minmax(0, 1.45fr) minmax(92px, .45fr);
         grid-template-areas:
           "keys attacks"
           "hint hint";
@@ -584,17 +584,18 @@
       }
       .keypad { gap: 6px; }
       .key {
-        font-size: 22px;
-        min-height: 34px;
+        font-size: 28px;
+        min-height: 42px;
         border-width: 2px;
         box-shadow: 0 3px 0 #b7a98e;
       }
       .attack {
-        min-height: 68px;
-        font-size: 22px;
-        padding: 8px;
+        min-height: 54px;
+        font-size: 16px;
+        padding: 6px;
         border: 2px solid var(--ink);
       }
+      .attack-stack { gap: 6px; }
       .panel {
         padding: 8px;
         border-width: 2px;
