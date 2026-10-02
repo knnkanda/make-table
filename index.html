@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>make table - 九九ディフェンス</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f1e8;
+      --ink: #21302f;
+      --muted: #64706d;
+      --line: #d9d0c0;
+      --panel: #fffaf0;
+      --accent: #e84f32;
+      --accent-dark: #bc321e;
+      --blue: #2477b3;
+      --green: #27845f;
+      --gold: #e4aa24;
+      --danger: #c53333;
+      --shadow: 0 16px 34px rgba(38, 28, 15, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(0deg, rgba(255, 255, 255, .56), rgba(255, 255, 255, .56)),
+        repeating-linear-gradient(90deg, #efe4d2 0 18px, #f7eedf 18px 36px);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    }
+
+    button:active { transform: translateY(1px); }
+
+    .app {
+      width: min(1120px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 52px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 5px 0 var(--accent-dark);
+      padding: 11px 15px;
+    }
+
+    .secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 2px solid var(--ink);
+      padding: 9px 13px;
+    }
+
+    main { display: block; }
+
+    .battlefield {
+      position: relative;
+      min-height: 760px;
+      overflow: hidden;
+      background:
+        linear-gradient(#dff2ff 0 42%, #94d58b 42% 76%, #66523f 76% 100%);
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .lane {
+      position: absolute;
+      inset: auto 0 250px 0;
+      height: 118px;
+      border-top: 3px dashed rgba(33, 48, 47, .32);
+      border-bottom: 3px dashed rgba(33, 48, 47, .32);
+      background: rgba(255, 255, 255, .18);
+    }
+
+    .castle {
+      position: absolute;
+      left: 22px;
+      bottom: 250px;
+      width: 114px;
+      height: 170px;
+      background: #b7cad2;
+      border: 3px solid var(--ink);
+      border-radius: 8px 8px 0 0;
+      display: grid;
+      place-items: center;
+      font-size: 54px;
+      font-weight: 900;
+    }
+
+    .castle span {
+      display: block;
+      position: relative;
+      z-index: 1;
+      font-size: 28px;
+      line-height: 1.1;
+      text-align: center;
+    }
+
+    .castle::before {
+      content: "";
+      position: absolute;
+      top: -32px;
+      left: -3px;
+      width: 114px;
+      height: 32px;
+      background:
+        linear-gradient(90deg, #7e99a4 0 24px, transparent 24px 34px, #7e99a4 34px 58px, transparent 58px 68px, #7e99a4 68px 92px, transparent 92px);
+      border: 3px solid var(--ink);
+      border-bottom: 0;
+      border-radius: 7px 7px 0 0;
+    }
+
+    .enemy {
+      position: absolute;
+      top: 260px;
+      width: 110px;
+      height: 110px;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      background: #ffd45d;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      box-shadow: 0 8px 0 rgba(0, 0, 0, .15);
+      transition: left .2s linear, transform .16s ease, opacity .2s ease;
+    }
+
+    .enemy.divide {
+      background: #f26d62;
+      color: #fff;
+    }
+
+    .enemy.divide .enemy-label {
+      color: #ffe8d9;
+    }
+
+    .enemy.hit {
+      transform: scale(1.08) rotate(-3deg);
+      opacity: .3;
+    }
+
+    .enemy-number {
+      font-size: 44px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .enemy-label {
+      font-size: 12px;
+      font-weight: 900;
+      color: #684b0d;
+    }
+
+    .hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .stage-name {
+      color: var(--blue);
+      font-size: 18px;
+    }
+
+    .meter {
+      background: rgba(255, 250, 240, .92);
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .meter-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .meter-value {
+      display: block;
+      font-size: 24px;
+      font-weight: 950;
+      line-height: 1.1;
+    }
+
+    .message {
+      margin-top: 4px;
+      font-size: 15px;
+      color: var(--muted);
+      font-weight: 700;
+      min-height: 20px;
+    }
+
+    .player-base {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-height: 210px;
+      padding: 12px;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 240, .94), rgba(243, 219, 171, .96));
+      border-top: 3px solid var(--ink);
+      display: grid;
+      grid-template-columns: 310px minmax(240px, 1fr) 280px;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      margin: 0 0 9px;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .key {
+      min-height: 48px;
+      background: #fff;
+      color: var(--ink);
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      font-size: 30px;
+      font-weight: 950;
+      box-shadow: 0 5px 0 #b7a98e;
+    }
+
+    .key.selected {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 5px 0 #14517c;
+    }
+
+    .key.clear {
+      background: #f7d9d1;
+      color: var(--accent-dark);
+    }
+
+    .key:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+    }
+
+    .attack {
+      width: 100%;
+      min-height: 84px;
+      margin-top: 0;
+      padding: 13px;
+      background: var(--green);
+      color: #fff;
+      box-shadow: 0 5px 0 #176244;
+      font-size: clamp(24px, 3.4vw, 42px);
+      line-height: 1.15;
+    }
+
+    .attack.divide {
+      background: #d83f35;
+      box-shadow: 0 5px 0 #9f241e;
+    }
+
+    .attack:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+      box-shadow: none;
+    }
+
+    .attack-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .hint {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      opacity: var(--hint-opacity, 0);
+      transform: translateY(calc((1 - var(--hint-opacity, 0)) * 8px));
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .pair {
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-weight: 900;
+      box-shadow: 0 4px 0 #b7a98e;
+    }
+
+    .pair:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .formula {
+      min-height: 74px;
+      margin-top: 8px;
+      color: var(--accent-dark);
+      font-size: clamp(19px, 3.2vw, 32px);
+      font-weight: 950;
+      display: grid;
+      align-content: center;
+    }
+
+    .fx-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .times-shot {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      background: #fff;
+      color: var(--accent);
+      font-size: 38px;
+      font-weight: 950;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, .2);
+      animation: fly-x .28s ease-in forwards;
+    }
+
+    .explosion {
+      position: absolute;
+      width: var(--boom-size);
+      height: var(--boom-size);
+      margin: calc(var(--boom-size) / -2) 0 0 calc(var(--boom-size) / -2);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, #fff 0 18%, #ffec6a 19% 39%, #ff8b24 40% 58%, rgba(232, 79, 50, .2) 59% 70%, transparent 71%);
+      border: 3px solid rgba(33, 48, 47, .72);
+      animation: boom .42s ease-out forwards;
+    }
+
+    .explosion::before,
+    .explosion::after {
+      content: var(--boom-symbol, "×");
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, .25);
+      font-size: calc(var(--boom-size) * .46);
+      font-weight: 950;
+    }
+
+    .explosion::after {
+      transform: rotate(45deg);
+      opacity: .82;
+    }
+
+    .pause-screen,
+    .start-screen,
+    .game-over {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      background: rgba(246, 241, 232, .88);
+      padding: 18px;
+    }
+
+    .modal {
+      width: min(460px, 100%);
+      background: #fffaf0;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .modal h2 {
+      font-size: 34px;
+      margin-bottom: 10px;
+    }
+
+    .modal p {
+      margin: 8px 0 14px;
+      color: var(--muted);
+      font-weight: 700;
+      line-height: 1.7;
+    }
+
+    .hidden { display: none; }
+
+    .facts {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.55;
+    }
+
+    .facts.running { display: none; }
+
+    .flash {
+      animation: flash .3s ease;
+    }
+
+    @keyframes flash {
+      0% { background: #fff; }
+      50% { background: #fff2a8; }
+      100% { background: transparent; }
+    }
+
+    @keyframes fly-x {
+      from {
+        left: var(--from-x);
+        top: var(--from-y);
+        transform: scale(.72) rotate(-18deg);
+      }
+      to {
+        left: var(--to-x);
+        top: var(--to-y);
+        transform: scale(1.06) rotate(20deg);
+      }
+    }
+
+    @keyframes boom {
+      0% { transform: scale(.25); opacity: 0; }
+      28% { opacity: 1; }
+      100% { transform: scale(1.28); opacity: 0; }
+    }
+
+    @media (max-width: 820px) {
+      .app { padding: 10px; }
+      header { align-items: flex-start; }
+      .battlefield { min-height: 760px; }
+      .hud { grid-template-columns: repeat(2, 1fr); }
+      .castle { width: 92px; height: 132px; left: 14px; bottom: 250px; font-size: 42px; }
+      .castle::before { width: 92px; }
+      .enemy { top: 250px; width: 94px; height: 94px; }
+      .enemy-number { font-size: 36px; }
+      .player-base {
+        min-height: 280px;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .key { font-size: 26px; min-height: 46px; }
+      .attack { min-height: 64px; font-size: 26px; }
+      .panel { padding: 9px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>make table</h1>
+        <p class="subtitle">九九ディフェンス：答えの数字を、かけ算カードで守りきろう</p>
+      </div>
+      <div class="top-actions">
+        <button class="secondary" id="pauseBtn" type="button">一時停止</button>
+        <button class="primary" id="restartBtn" type="button">最初から</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="battlefield" aria-label="バトルフィールド">
+        <div class="hud">
+          <div class="meter"><span class="meter-label">スコア</span><span class="meter-value" id="score">0</span></div>
+          <div class="meter"><span class="meter-label">コンボ</span><span class="meter-value" id="combo">0</span></div>
+          <div class="meter"><span class="meter-label">ライフ</span><span class="meter-value" id="lives">3</span></div>
+          <div class="meter"><span class="meter-label">ステージ</span><span class="meter-value stage-name" id="level">1</span></div>
+        </div>
+
+        <div class="lane"></div>
+        <div class="castle" aria-hidden="true"><span id="castleLabel">城<br>1</span></div>
+        <div class="enemy" id="enemy">
+          <div>
+            <div class="enemy-label">TARGET</div>
+            <div class="enemy-number" id="targetNumber">24</div>
+          </div>
+        </div>
+
+        <div class="fx-layer" id="fxLayer"></div>
+
+        <div class="player-base">
+          <section class="panel">
+            <h2>自分の陣地</h2>
+            <div class="keypad" id="keypad" aria-label="テンキー"></div>
+          </section>
+
+          <div class="attack-stack">
+            <button class="attack" id="multiplyAttackBtn" type="button">かけざん<br>攻撃！</button>
+            <button class="attack divide" id="divideAttackBtn" type="button">わりざん<br>攻撃！</button>
+          </div>
+
+          <section class="panel">
+            <h2>後半ヒント</h2>
+            <div class="hint" id="hint"></div>
+            <div class="formula" id="formula">敵の数字を倒す九九を入力</div>
+            <div class="message" id="message">例：24 なら 3 と 8、または 4 と 6</div>
+          </section>
+        </div>
+
+        <div class="start-screen" id="startScreen">
+          <div class="modal">
+            <h2>make table</h2>
+            <p>右から近づく数字の敵を、九九の組み合わせで止めます。カードを2枚えらんで攻撃してください。</p>
+            <button class="primary" id="startBtn" type="button">スタート</button>
+          </div>
+        </div>
+
+        <div class="pause-screen hidden" id="pauseScreen">
+          <div class="modal">
+            <h2>一時停止</h2>
+            <p>いまの数字を作れる九九を見ながら、次の一手を考えられます。</p>
+            <button class="primary" id="resumeBtn" type="button">つづける</button>
+          </div>
+        </div>
+
+        <div class="game-over hidden" id="gameOver">
+          <div class="modal">
+            <h2>ゲーム終了</h2>
+            <p id="finalScore">スコア 0</p>
+            <button class="primary" id="againBtn" type="button">もう一度</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel facts" id="facts" style="margin-top: 12px;">
+        <div>同じ答えでも、作り方はいくつもあります。</div>
+        <div>24なら 3×8 と 4×6。赤い敵は 8÷2 のように割って倒します。</div>
+        <div>敵が近づく後半にヒントがうっすら出るので、ギリギリでも考えられます。</div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const factors = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const stageRules = [
+      { name: 1, max: 9, caption: "1桁" },
+      { name: 2, max: 10, caption: "10まで" },
+      { name: 3, max: 30, caption: "30まで" },
+      { name: 4, max: 60, caption: "60まで" },
+      { name: 5, max: 99, caption: "99まで" },
+    ];
+    const products = [...new Set(factors.flatMap(a => factors.map(b => a * b)))].sort((a, b) => a - b);
+    const quotients = [...new Set(factors.flatMap(a => factors.map(b => a / b)).filter(Number.isInteger))].sort((a, b) => a - b);
+
+    const state = {
+      running: false,
+      paused: false,
+      over: false,
+      score: 0,
+      combo: 0,
+      lives: 3,
+      level: 1,
+      target: 24,
+      mode: "multiply",
+      enemyX: 0,
+      enemyStartX: 0,
+      input: [],
+      lastTime: 0,
+      defeated: 0,
+      attacking: false,
+    };
+
+    const els = {
+      score: document.querySelector("#score"),
+      combo: document.querySelector("#combo"),
+      lives: document.querySelector("#lives"),
+      level: document.querySelector("#level"),
+      targetNumber: document.querySelector("#targetNumber"),
+      castleLabel: document.querySelector("#castleLabel"),
+      enemy: document.querySelector("#enemy"),
+      keypad: document.querySelector("#keypad"),
+      multiplyAttackBtn: document.querySelector("#multiplyAttackBtn"),
+      divideAttackBtn: document.querySelector("#divideAttackBtn"),
+      message: document.querySelector("#message"),
+      hint: document.querySelector("#hint"),
+      formula: document.querySelector("#formula"),
+      fxLayer: document.querySelector("#fxLayer"),
+      pauseBtn: document.querySelector("#pauseBtn"),
+      restartBtn: document.querySelector("#restartBtn"),
+      startBtn: document.querySelector("#startBtn"),
+      resumeBtn: document.querySelector("#resumeBtn"),
+      againBtn: document.querySelector("#againBtn"),
+      startScreen: document.querySelector("#startScreen"),
+      pauseScreen: document.querySelector("#pauseScreen"),
+      gameOver: document.querySelector("#gameOver"),
+      finalScore: document.querySelector("#finalScore"),
+      facts: document.querySelector("#facts"),
+    };
+
+    function rand(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function currentStage() {
+      return stageRules[Math.min(stageRules.length - 1, Math.floor(state.defeated / 5))];
+    }
+
+    function currentProducts() {
+      const stage = currentStage();
+      return products.filter(n => n <= stage.max && pairsFor(n).length > 0);
+    }
+
+    function currentQuotients() {
+      const stage = currentStage();
+      return quotients.filter(n => n <= stage.max && dividePairsFor(n).length > 0);
+    }
+
+    function pairsFor(product) {
+      const pairs = [];
+      for (const a of factors) {
+        for (const b of factors) {
+          if (a * b === product && a <= b) pairs.push([a, b]);
+        }
+      }
+      return pairs;
+    }
+
+    function dividePairsFor(quotient) {
+      const pairs = [];
+      for (const a of factors) {
+        for (const b of factors) {
+          if (b !== 0 && a / b === quotient) pairs.push([a, b]);
+        }
+      }
+      return pairs;
+    }
+
+    function answersForTarget() {
+      return state.mode === "divide" ? dividePairsFor(state.target) : pairsFor(state.target);
+    }
+
+    function symbolForMode() {
+      return state.mode === "divide" ? "÷" : "×";
+    }
+
+    function labelForMode() {
+      return state.mode === "divide" ? "わりざん攻撃" : "かけざん攻撃";
+    }
+
+    function spawnEnemy() {
+      const stage = currentStage();
+      state.mode = stage.name >= 3 && Math.random() < Math.min(.12 + stage.name * .07, .42) ? "divide" : "multiply";
+      state.target = state.mode === "divide" ? rand(currentQuotients()) : rand(currentProducts());
+      state.enemyX = document.querySelector(".battlefield").clientWidth - 128;
+      state.enemyStartX = state.enemyX;
+      state.input = [];
+      state.attacking = false;
+      els.enemy.classList.remove("hit", "divide");
+      els.enemy.classList.toggle("divide", state.mode === "divide");
+      draw();
+      setMessage(`敵の ${state.target} を倒す ${labelForMode()} を入力`);
+    }
+
+    function drawKeypad() {
+      const keys = [7, 8, 9, 4, 5, 6, 1, 2, 3, "C", 0];
+      els.keypad.innerHTML = "";
+      keys.forEach(value => {
+        const btn = document.createElement("button");
+        btn.className = value === "C" ? "key clear" : "key";
+        btn.type = "button";
+        btn.textContent = value;
+        btn.disabled = !state.running || state.paused || state.over || state.attacking;
+        if (state.input.includes(value)) btn.classList.add("selected");
+        btn.addEventListener("click", () => pressKey(value));
+        els.keypad.appendChild(btn);
+      });
+    }
+
+    function drawHint() {
+      els.hint.innerHTML = "";
+      for (const [a, b] of answersForTarget()) {
+        const chip = document.createElement("span");
+        const chipButton = document.createElement("button");
+        chipButton.className = "pair";
+        chipButton.type = "button";
+        chipButton.textContent = `${a} ${symbolForMode()} ${b}`;
+        chipButton.disabled = !state.running || state.paused || state.over || state.attacking;
+        chipButton.addEventListener("click", () => useHint(a, b));
+        els.hint.appendChild(chipButton);
+      }
+    }
+
+    function draw() {
+      const stage = currentStage();
+      els.score.textContent = state.score;
+      els.combo.textContent = state.combo;
+      els.lives.textContent = state.lives;
+      els.level.textContent = `${stage.name} ${stage.caption}`;
+      els.castleLabel.innerHTML = `城<br>${stage.name}`;
+      els.targetNumber.textContent = state.target;
+      els.enemy.style.left = `${Math.max(142, state.enemyX)}px`;
+      els.multiplyAttackBtn.disabled = !state.running || state.paused || state.over || state.attacking || state.mode !== "multiply";
+      els.divideAttackBtn.disabled = !state.running || state.paused || state.over || state.attacking || state.mode !== "divide";
+      drawFormula();
+      drawKeypad();
+      drawHint();
+      updateHintOpacity();
+    }
+
+    function drawFormula() {
+      if (state.input.length === 0) {
+        els.formula.textContent = `敵の数字 ${state.target} を倒す ${labelForMode()} を入力`;
+        return;
+      }
+      if (state.input.length === 1) {
+        els.formula.textContent = `${state.input[0]} ${symbolForMode()} ?`;
+        return;
+      }
+      const [a, b] = state.input;
+      els.formula.textContent = `${a} ${symbolForMode()} ${b} = ${calculate(a, b, state.mode)}`;
+    }
+
+    function updateHintOpacity() {
+      const fullDistance = Math.max(1, state.enemyStartX - 142);
+      const progress = 1 - ((state.enemyX - 142) / fullDistance);
+      const opacity = Math.max(0, Math.min(1, (progress - .48) / .42));
+      els.hint.style.setProperty("--hint-opacity", opacity.toFixed(2));
+    }
+
+    function setMessage(text) {
+      els.message.textContent = text;
+      els.formula.classList.remove("flash");
+      void els.formula.offsetWidth;
+      els.formula.classList.add("flash");
+    }
+
+    function pressKey(value) {
+      if (!state.running || state.paused || state.over || state.attacking) return;
+      if (value === "C") {
+        state.input = [];
+      } else {
+        if (state.input.length === 2) state.input = [];
+        state.input.push(value);
+      }
+      drawKeypad();
+      drawFormula();
+    }
+
+    function attack(mode) {
+      if (!state.running || state.paused || state.over || state.attacking || state.input.length !== 2) {
+        setMessage(`テンキーで${mode === "divide" ? "割る数" : "かける数"}を2つ入力しましょう`);
+        return;
+      }
+      if (mode !== state.mode) {
+        setMessage(state.mode === "divide" ? "赤い敵には わりざん攻撃！" : "黄色い敵には かけざん攻撃！");
+        return;
+      }
+
+      const [a, b] = state.input;
+      launchAttack(a, b, mode);
+    }
+
+    function useHint(a, b) {
+      const fullDistance = Math.max(1, state.enemyStartX - 142);
+      const progress = 1 - ((state.enemyX - 142) / fullDistance);
+      if (!state.running || state.paused || state.over || state.attacking || progress < .48) return;
+      state.input = [a, b];
+      drawFormula();
+      launchAttack(a, b, state.mode);
+    }
+
+    function calculate(a, b, mode) {
+      if (mode === "divide" && b === 0) return "割れません";
+      return mode === "divide" ? a / b : a * b;
+    }
+
+    function launchAttack(a, b, mode) {
+      const result = calculate(a, b, mode);
+      state.attacking = true;
+      drawKeypad();
+      fireTimesShot(symbolForMode(), () => finishAttack(a, b, result, mode));
+    }
+
+    function finishAttack(a, b, result, mode) {
+      if (result === state.target) {
+        const speedRatio = Math.max(0, Math.min(1, (state.enemyX - 142) / Math.max(1, state.enemyStartX - 142)));
+        state.combo += 1;
+        state.defeated += 1;
+        state.level = currentStage().name;
+        const modeBonus = mode === "divide" ? 75 : 0;
+        state.score += 100 + modeBonus + state.combo * 25 + Math.max(0, Math.floor((state.enemyX - 140) / 8));
+        els.enemy.classList.add("hit");
+        createExplosion(speedRatio, mode);
+        setMessage(`${mode === "divide" ? "わりざん" : "かけざん"}攻撃！ ${a} ${mode === "divide" ? "÷" : "×"} ${b} = ${result}`);
+        setTimeout(spawnEnemy, 280);
+      } else {
+        state.combo = 0;
+        state.score = Math.max(0, state.score - 20);
+        state.attacking = false;
+        setMessage(`${a} ${mode === "divide" ? "÷" : "×"} ${b} = ${result}。${state.target} ではありません`);
+      }
+      state.input = [];
+      draw();
+    }
+
+    function fireTimesShot(symbol, done) {
+      const field = document.querySelector(".battlefield").getBoundingClientRect();
+      const enemy = els.enemy.getBoundingClientRect();
+      const base = document.querySelector(".player-base").getBoundingClientRect();
+      const shot = document.createElement("div");
+      shot.className = "times-shot";
+      shot.textContent = symbol;
+      shot.style.setProperty("--from-x", `${base.left + base.width * .46 - field.left}px`);
+      shot.style.setProperty("--from-y", `${base.top - field.top + 34}px`);
+      shot.style.setProperty("--to-x", `${enemy.left + enemy.width * .45 - field.left}px`);
+      shot.style.setProperty("--to-y", `${enemy.top + enemy.height * .40 - field.top}px`);
+      els.fxLayer.appendChild(shot);
+      setTimeout(() => {
+        shot.remove();
+        done();
+      }, 290);
+    }
+
+    function createExplosion(speedRatio, mode) {
+      const field = document.querySelector(".battlefield").getBoundingClientRect();
+      const enemy = els.enemy.getBoundingClientRect();
+      const boom = document.createElement("div");
+      const size = 70 + Math.round(speedRatio * 110);
+      boom.className = "explosion";
+      boom.style.setProperty("--boom-size", `${size}px`);
+      boom.style.setProperty("--boom-symbol", `"${mode === "divide" ? "÷" : "×"}"`);
+      boom.style.left = `${enemy.left + enemy.width / 2 - field.left}px`;
+      boom.style.top = `${enemy.top + enemy.height / 2 - field.top}px`;
+      els.fxLayer.appendChild(boom);
+      setTimeout(() => boom.remove(), 460);
+    }
+
+    function loseLife() {
+      state.lives -= 1;
+      state.combo = 0;
+      if (state.lives <= 0) {
+        endGame();
+      } else {
+        setMessage(`敵が城に到着。ライフはあと ${state.lives}`);
+        spawnEnemy();
+      }
+    }
+
+    function endGame() {
+      state.over = true;
+      state.running = false;
+      els.finalScore.textContent = `スコア ${state.score}`;
+      els.gameOver.classList.remove("hidden");
+      draw();
+    }
+
+    function startGame() {
+      state.running = true;
+      state.paused = false;
+      state.over = false;
+      state.score = 0;
+      state.combo = 0;
+      state.lives = 3;
+      state.level = 1;
+      state.defeated = 0;
+      state.attacking = false;
+      state.lastTime = performance.now();
+      els.startScreen.classList.add("hidden");
+      els.pauseScreen.classList.add("hidden");
+      els.gameOver.classList.add("hidden");
+      els.facts.classList.add("running");
+      spawnEnemy();
+      requestAnimationFrame(loop);
+    }
+
+    function togglePause(force) {
+      if (!state.running || state.over) return;
+      state.paused = typeof force === "boolean" ? force : !state.paused;
+      els.pauseScreen.classList.toggle("hidden", !state.paused);
+      els.pauseBtn.textContent = state.paused ? "再開" : "一時停止";
+      state.lastTime = performance.now();
+      drawKeypad();
+      if (!state.paused) requestAnimationFrame(loop);
+    }
+
+    function loop(now) {
+      if (!state.running || state.paused || state.over) return;
+      const dt = Math.min(48, now - state.lastTime);
+      state.lastTime = now;
+      const speed = 22 + currentStage().name * 8;
+      state.enemyX -= speed * (dt / 1000);
+      if (state.enemyX <= 142) {
+        loseLife();
+      } else {
+        els.enemy.style.left = `${state.enemyX}px`;
+        updateHintOpacity();
+      }
+      requestAnimationFrame(loop);
+    }
+
+    els.multiplyAttackBtn.addEventListener("click", () => attack("multiply"));
+    els.divideAttackBtn.addEventListener("click", () => attack("divide"));
+    els.pauseBtn.addEventListener("click", () => togglePause());
+    els.resumeBtn.addEventListener("click", () => togglePause(false));
+    els.startBtn.addEventListener("click", startGame);
+    els.restartBtn.addEventListener("click", startGame);
+    els.againBtn.addEventListener("click", startGame);
+    window.addEventListener("keydown", event => {
+      if (event.key === " ") {
+        event.preventDefault();
+        attack(state.mode);
+      }
+      if (event.key.toLowerCase() === "p") togglePause();
+    });
+
+    spawnEnemy();
+    drawKeypad();
+  </script>
+</body>
+</html>
