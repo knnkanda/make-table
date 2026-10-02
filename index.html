@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>make table - 九九ディフェンス</title>
   <style>
     :root {
@@ -23,6 +23,11 @@
 
     * { box-sizing: border-box; }
 
+    html {
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -31,6 +36,7 @@
         repeating-linear-gradient(90deg, #efe4d2 0 18px, #f7eedf 18px 36px);
       color: var(--ink);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+      overscroll-behavior: none;
     }
 
     button {
@@ -39,6 +45,10 @@
       font: inherit;
       font-weight: 800;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
       transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
     }
 
@@ -138,6 +148,28 @@
     .castle.burning {
       background: #5f6264;
       animation: castle-shake .12s linear 0s 8;
+    }
+
+    .castle.damage-1 {
+      background:
+        linear-gradient(135deg, transparent 0 46%, rgba(33, 48, 47, .85) 47% 50%, transparent 51%),
+        #a9bec6;
+      transform: rotate(-1deg);
+    }
+
+    .castle.damage-2 {
+      background:
+        linear-gradient(135deg, transparent 0 34%, rgba(33, 48, 47, .9) 35% 38%, transparent 39%),
+        linear-gradient(45deg, transparent 0 58%, rgba(33, 48, 47, .82) 59% 62%, transparent 63%),
+        #9dabaf;
+      transform: rotate(2deg);
+      box-shadow: inset -12px 0 0 rgba(77, 63, 56, .2);
+    }
+
+    .castle.damage-1::before,
+    .castle.damage-2::before {
+      background:
+        linear-gradient(90deg, #6f848c 0 24px, transparent 24px 34px, #6f848c 34px 58px, transparent 58px 68px, #6f848c 68px 92px, transparent 92px);
     }
 
     .castle.burning::after {
@@ -590,6 +622,11 @@
         top: -22px;
         background:
           linear-gradient(90deg, #7e99a4 0 15px, transparent 15px 22px, #7e99a4 22px 38px, transparent 38px 45px, #7e99a4 45px 60px, transparent 60px);
+      }
+      .castle.damage-1::before,
+      .castle.damage-2::before {
+        background:
+          linear-gradient(90deg, #6f848c 0 15px, transparent 15px 22px, #6f848c 22px 38px, transparent 38px 45px, #6f848c 45px 60px, transparent 60px);
       }
       .enemy {
         top: auto;
@@ -1059,10 +1096,17 @@
       setTimeout(() => boom.remove(), 460);
     }
 
+    function updateCastleDamage() {
+      const castle = document.querySelector(".castle");
+      castle.classList.toggle("damage-1", state.lives === 2);
+      castle.classList.toggle("damage-2", state.lives === 1);
+    }
+
     function loseLife() {
       if (state.ending) return;
       state.lives -= 1;
       state.combo = 0;
+      updateCastleDamage();
       if (state.lives <= 0) {
         burnCastleThenEnd();
       } else {
@@ -1102,7 +1146,7 @@
       state.attacking = false;
       state.ending = false;
       state.lastTime = performance.now();
-      document.querySelector(".castle").classList.remove("burning");
+      document.querySelector(".castle").classList.remove("burning", "damage-1", "damage-2");
       els.startScreen.classList.add("hidden");
       els.pauseScreen.classList.add("hidden");
       els.gameOver.classList.add("hidden");
