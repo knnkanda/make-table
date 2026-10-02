@@ -498,22 +498,124 @@
     }
 
     @media (max-width: 820px) {
-      .app { padding: 10px; }
-      header { align-items: flex-start; }
-      .battlefield { min-height: 760px; }
-      .hud { grid-template-columns: repeat(2, 1fr); }
-      .castle { width: 92px; height: 132px; left: 14px; bottom: 250px; font-size: 42px; }
-      .castle::before { width: 92px; }
-      .enemy { top: 250px; width: 94px; height: 94px; }
-      .enemy-number { font-size: 36px; }
+      .app {
+        min-height: 100svh;
+        padding: 8px;
+        gap: 8px;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      header {
+        align-items: flex-start;
+        padding-bottom: 8px;
+      }
+      h1 { font-size: 30px; }
+      .subtitle { display: none; }
+      .top-actions button {
+        padding: 7px 9px;
+        font-size: 13px;
+      }
+      .battlefield {
+        min-height: calc(100svh - 82px);
+        height: calc(100svh - 82px);
+      }
+      .lane {
+        bottom: 300px;
+        height: 96px;
+      }
+      .hud {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+      }
+      .meter {
+        padding: 5px;
+        border-width: 2px;
+      }
+      .meter-label { font-size: 10px; }
+      .meter-value {
+        font-size: 17px;
+        line-height: 1;
+      }
+      .stage-name { font-size: 12px; }
+      .castle {
+        width: 78px;
+        height: 104px;
+        left: 8px;
+        bottom: 300px;
+        font-size: 34px;
+      }
+      .castle span { font-size: 20px; }
+      .castle::before {
+        width: 78px;
+        height: 24px;
+        top: -24px;
+        background:
+          linear-gradient(90deg, #7e99a4 0 17px, transparent 17px 25px, #7e99a4 25px 42px, transparent 42px 50px, #7e99a4 50px 67px, transparent 67px);
+      }
+      .enemy {
+        top: auto;
+        bottom: 314px;
+        width: 78px;
+        height: 78px;
+      }
+      .enemy-number { font-size: 30px; }
+      .enemy-label { font-size: 10px; }
       .player-base {
-        min-height: 280px;
-        grid-template-columns: 1fr;
+        min-height: 300px;
+        padding: 8px;
+        grid-template-columns: minmax(0, 1fr) minmax(126px, .78fr);
+        grid-template-areas:
+          "keys attacks"
+          "hint hint";
         gap: 8px;
       }
-      .key { font-size: 26px; min-height: 46px; }
-      .attack { min-height: 64px; font-size: 26px; }
-      .panel { padding: 9px; }
+      .player-base .panel:first-child { grid-area: keys; }
+      .attack-stack { grid-area: attacks; }
+      .player-base .panel:last-child { grid-area: hint; }
+      h2 {
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      .keypad { gap: 6px; }
+      .key {
+        font-size: 23px;
+        min-height: 38px;
+        border-width: 2px;
+        box-shadow: 0 3px 0 #b7a98e;
+      }
+      .attack {
+        min-height: 76px;
+        font-size: 23px;
+        padding: 8px;
+        border: 2px solid var(--ink);
+      }
+      .panel {
+        padding: 8px;
+        border-width: 2px;
+      }
+      .hint {
+        max-height: 42px;
+        overflow: auto;
+        gap: 5px;
+      }
+      .pair {
+        padding: 5px 7px;
+        font-size: 13px;
+      }
+      .formula {
+        min-height: 34px;
+        margin-top: 4px;
+        font-size: 18px;
+      }
+      .message {
+        margin-top: 0;
+        font-size: 12px;
+        min-height: 16px;
+      }
+      .modal h2 { font-size: 28px; }
+      .modal p { font-size: 14px; }
     }
   </style>
 </head>
@@ -677,6 +779,18 @@
       return quotients.filter(n => n <= stage.max && dividePairsFor(n).length > 0);
     }
 
+    function castleLimit() {
+      const field = document.querySelector(".battlefield").getBoundingClientRect();
+      const castle = document.querySelector(".castle").getBoundingClientRect();
+      return castle.right - field.left + 10;
+    }
+
+    function enemyStartPosition() {
+      const field = document.querySelector(".battlefield").getBoundingClientRect();
+      const enemyWidth = els.enemy.getBoundingClientRect().width || 110;
+      return field.width - enemyWidth - 14;
+    }
+
     function pairsFor(product) {
       const pairs = [];
       for (const a of factors) {
@@ -713,7 +827,7 @@
       const stage = currentStage();
       state.mode = stage.name >= 3 && Math.random() < Math.min(.12 + stage.name * .07, .42) ? "divide" : "multiply";
       state.target = state.mode === "divide" ? rand(currentQuotients()) : rand(currentProducts());
-      state.enemyX = document.querySelector(".battlefield").clientWidth - 128;
+      state.enemyX = enemyStartPosition();
       state.enemyStartX = state.enemyX;
       state.input = [];
       state.attacking = false;
@@ -760,7 +874,7 @@
       els.level.textContent = `${stage.name} ${stage.caption}`;
       els.castleLabel.innerHTML = `城<br>${stage.name}`;
       els.targetNumber.textContent = state.target;
-      els.enemy.style.left = `${Math.max(142, state.enemyX)}px`;
+      els.enemy.style.left = `${Math.max(castleLimit(), state.enemyX)}px`;
       els.multiplyAttackBtn.disabled = !state.running || state.paused || state.over || state.attacking || state.mode !== "multiply";
       els.divideAttackBtn.disabled = !state.running || state.paused || state.over || state.attacking || state.mode !== "divide";
       drawFormula();
@@ -783,8 +897,9 @@
     }
 
     function updateHintOpacity() {
-      const fullDistance = Math.max(1, state.enemyStartX - 142);
-      const progress = 1 - ((state.enemyX - 142) / fullDistance);
+      const limit = castleLimit();
+      const fullDistance = Math.max(1, state.enemyStartX - limit);
+      const progress = 1 - ((state.enemyX - limit) / fullDistance);
       const opacity = Math.max(0, Math.min(1, (progress - .48) / .42));
       els.hint.style.setProperty("--hint-opacity", opacity.toFixed(2));
     }
@@ -823,8 +938,9 @@
     }
 
     function useHint(a, b) {
-      const fullDistance = Math.max(1, state.enemyStartX - 142);
-      const progress = 1 - ((state.enemyX - 142) / fullDistance);
+      const limit = castleLimit();
+      const fullDistance = Math.max(1, state.enemyStartX - limit);
+      const progress = 1 - ((state.enemyX - limit) / fullDistance);
       if (!state.running || state.paused || state.over || state.attacking || progress < .48) return;
       state.input = [a, b];
       drawFormula();
@@ -845,12 +961,13 @@
 
     function finishAttack(a, b, result, mode) {
       if (result === state.target) {
-        const speedRatio = Math.max(0, Math.min(1, (state.enemyX - 142) / Math.max(1, state.enemyStartX - 142)));
+        const limit = castleLimit();
+        const speedRatio = Math.max(0, Math.min(1, (state.enemyX - limit) / Math.max(1, state.enemyStartX - limit)));
         state.combo += 1;
         state.defeated += 1;
         state.level = currentStage().name;
         const modeBonus = mode === "divide" ? 75 : 0;
-        state.score += 100 + modeBonus + state.combo * 25 + Math.max(0, Math.floor((state.enemyX - 140) / 8));
+        state.score += 100 + modeBonus + state.combo * 25 + Math.max(0, Math.floor((state.enemyX - castleLimit()) / 8));
         els.enemy.classList.add("hit");
         createExplosion(speedRatio, mode);
         setMessage(`${mode === "divide" ? "わりざん" : "かけざん"}攻撃！ ${a} ${mode === "divide" ? "÷" : "×"} ${b} = ${result}`);
@@ -951,7 +1068,7 @@
       state.lastTime = now;
       const speed = 22 + currentStage().name * 8;
       state.enemyX -= speed * (dt / 1000);
-      if (state.enemyX <= 142) {
+      if (state.enemyX <= castleLimit()) {
         loseLife();
       } else {
         els.enemy.style.left = `${state.enemyX}px`;
