@@ -784,16 +784,18 @@
   </div>
 
   <script>
-    const factors = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const factors = [2, 3, 4, 5, 6, 7, 8, 9];
     const stageRules = [
-      { name: 1, max: 9, caption: "1桁" },
-      { name: 2, max: 10, caption: "10まで" },
-      { name: 3, max: 30, caption: "30まで" },
-      { name: 4, max: 60, caption: "60まで" },
-      { name: 5, max: 99, caption: "99まで" },
+      { name: 1, row: 2, caption: "2の段" },
+      { name: 2, row: 3, caption: "3の段" },
+      { name: 3, row: 4, caption: "4の段" },
+      { name: 4, row: 5, caption: "5の段" },
+      { name: 5, row: 6, caption: "6の段" },
+      { name: 6, row: 7, caption: "7の段" },
+      { name: 7, row: 8, caption: "8の段" },
+      { name: 8, row: 9, caption: "9の段" },
     ];
     const products = [...new Set(factors.flatMap(a => factors.map(b => a * b)))].sort((a, b) => a - b);
-    const quotients = [...new Set(factors.flatMap(a => factors.map(b => a / b)).filter(Number.isInteger))].sort((a, b) => a - b);
 
     const state = {
       running: false,
@@ -851,12 +853,12 @@
 
     function currentProducts() {
       const stage = currentStage();
-      return products.filter(n => n <= stage.max && pairsFor(n).length > 0);
+      return [...new Set(factors.map(n => stage.row * n))];
     }
 
     function currentQuotients() {
       const stage = currentStage();
-      return quotients.filter(n => n <= stage.max && dividePairsFor(n).length > 0);
+      return [...new Set(dividePairsForStage(stage).map(([a, b]) => a / b))];
     }
 
     function castleLimit() {
@@ -885,14 +887,27 @@
       const pairs = [];
       for (const a of factors) {
         for (const b of factors) {
-          if (b !== 0 && a / b === quotient) pairs.push([a, b]);
+          if (b !== 1 && a / b === quotient && quotient !== 1) pairs.push([a, b]);
         }
       }
       return pairs;
     }
 
+    function dividePairsForStage(stage) {
+      const pairs = [];
+      for (const n of factors) {
+        const product = stage.row * n;
+        pairs.push([product, stage.row]);
+        if (n !== stage.row) pairs.push([product, n]);
+      }
+      return pairs.filter(([, b]) => b !== 1);
+    }
+
     function answersForTarget() {
-      return state.mode === "divide" ? dividePairsFor(state.target) : pairsFor(state.target);
+      if (state.mode === "divide") {
+        return dividePairsForStage(currentStage()).filter(([a, b]) => a / b === state.target);
+      }
+      return pairsFor(state.target);
     }
 
     function symbolForMode() {
@@ -970,11 +985,15 @@
         els.formula.textContent = `敵の数字 ${state.target} を倒す ${labelForMode()} を入力`;
         return;
       }
-      if (state.input.length === 1) {
+      if (state.mode === "multiply" && state.input.length === 1) {
         els.formula.textContent = `${state.input[0]} ${symbolForMode()} ?`;
         return;
       }
-      const [a, b] = state.input;
+      if (state.mode === "divide" && state.input.length < 2) {
+        els.formula.textContent = `${state.input[0]}${state.input[1] ?? ""} ÷ ?`;
+        return;
+      }
+      const [a, b] = operandsFromInput();
       els.formula.textContent = `${a} ${symbolForMode()} ${b} = ${calculate(a, b, state.mode)}`;
     }
 
@@ -998,7 +1017,8 @@
       if (value === "C") {
         state.input = [];
       } else {
-        if (state.input.length === 2) state.input = [];
+        const maxLength = state.mode === "divide" ? 3 : 2;
+        if (state.input.length === maxLength) state.input = [];
         state.input.push(value);
       }
       drawKeypad();
@@ -1006,7 +1026,8 @@
     }
 
     function attack(mode) {
-      if (!state.running || state.paused || state.over || state.attacking || state.input.length !== 2) {
+      const hasEnoughInput = mode === "divide" ? state.input.length >= 2 : state.input.length === 2;
+      if (!state.running || state.paused || state.over || state.attacking || !hasEnoughInput) {
         setMessage(`テンキーで${mode === "divide" ? "割る数" : "かける数"}を2つ入力しましょう`);
         return;
       }
@@ -1015,7 +1036,7 @@
         return;
       }
 
-      const [a, b] = state.input;
+      const [a, b] = operandsFromInput();
       launchAttack(a, b, mode);
     }
 
@@ -1024,12 +1045,28 @@
       const fullDistance = Math.max(1, state.enemyStartX - limit);
       const progress = 1 - ((state.enemyX - limit) / fullDistance);
       if (!state.running || state.paused || state.over || state.attacking || progress < .48) return;
-      state.input = [a, b];
+      state.input = digitsForPair(a, b, state.mode);
       drawFormula();
       launchAttack(a, b, state.mode);
     }
 
+    function operandsFromInput() {
+      if (state.mode === "divide" && state.input.length >= 3) {
+        return [state.input[0] * 10 + state.input[1], state.input[2]];
+      }
+      return [state.input[0], state.input[1]];
+    }
+
+    function digitsForPair(a, b, mode) {
+      if (mode === "divide" && a >= 10) {
+        return [Math.floor(a / 10), a % 10, b];
+      }
+      return [a, b];
+    }
+
     function calculate(a, b, mode) {
+      if (mode === "multiply" && (a === 1 || b === 1)) return "1はつかわない";
+      if (mode === "divide" && b === 1) return "1では割らない";
       if (mode === "divide" && b === 0) return "割れません";
       return mode === "divide" ? a / b : a * b;
     }
