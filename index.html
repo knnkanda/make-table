@@ -706,6 +706,7 @@
         <p class="subtitle">九九ディフェンス：答えの数字を、かけ算カードで守りきろう</p>
       </div>
       <div class="top-actions">
+        <button class="secondary" id="divisionToggleBtn" type="button">わり算 OFF</button>
         <button class="secondary" id="pauseBtn" type="button">一時停止</button>
         <button class="primary" id="restartBtn" type="button">最初から</button>
       </div>
@@ -809,6 +810,8 @@
       mode: "multiply",
       enemyX: 0,
       enemyStartX: 0,
+      lastTarget: null,
+      divisionEnabled: false,
       input: [],
       lastTime: 0,
       defeated: 0,
@@ -832,6 +835,7 @@
       formula: document.querySelector("#formula"),
       fxLayer: document.querySelector("#fxLayer"),
       pauseBtn: document.querySelector("#pauseBtn"),
+      divisionToggleBtn: document.querySelector("#divisionToggleBtn"),
       restartBtn: document.querySelector("#restartBtn"),
       startBtn: document.querySelector("#startBtn"),
       resumeBtn: document.querySelector("#resumeBtn"),
@@ -918,10 +922,16 @@
       return state.mode === "divide" ? "わりざん攻撃" : "かけざん攻撃";
     }
 
+    function pickNextTarget(list) {
+      const candidates = list.filter(n => n !== state.lastTarget);
+      return rand(candidates.length ? candidates : list);
+    }
+
     function spawnEnemy() {
       const stage = currentStage();
-      state.mode = stage.name >= 3 && Math.random() < Math.min(.12 + stage.name * .07, .42) ? "divide" : "multiply";
-      state.target = state.mode === "divide" ? rand(currentQuotients()) : rand(currentProducts());
+      state.mode = state.divisionEnabled && stage.name >= 3 && Math.random() < Math.min(.12 + stage.name * .07, .42) ? "divide" : "multiply";
+      state.target = state.mode === "divide" ? pickNextTarget(currentQuotients()) : pickNextTarget(currentProducts());
+      state.lastTarget = state.target;
       state.enemyX = enemyStartPosition();
       state.enemyStartX = state.enemyX;
       state.input = [];
@@ -974,6 +984,7 @@
       els.divideAttackBtn.disabled = !state.running || state.paused || state.over || state.attacking || state.mode !== "divide";
       els.multiplyAttackBtn.classList.toggle("hidden-mode", state.mode === "divide");
       els.divideAttackBtn.classList.toggle("hidden-mode", state.mode !== "divide");
+      els.divisionToggleBtn.textContent = state.divisionEnabled ? "わり算 ON" : "わり算 OFF";
       drawFormula();
       drawKeypad();
       drawHint();
@@ -1182,6 +1193,7 @@
       state.defeated = 0;
       state.attacking = false;
       state.ending = false;
+      state.lastTarget = null;
       state.lastTime = performance.now();
       document.querySelector(".castle").classList.remove("burning", "damage-1", "damage-2");
       els.startScreen.classList.add("hidden");
@@ -1190,6 +1202,13 @@
       els.facts.classList.add("running");
       spawnEnemy();
       requestAnimationFrame(loop);
+    }
+
+    function toggleDivisionPractice() {
+      if (state.attacking || state.ending) return;
+      state.divisionEnabled = !state.divisionEnabled;
+      els.divisionToggleBtn.textContent = state.divisionEnabled ? "わり算 ON" : "わり算 OFF";
+      setMessage(state.divisionEnabled ? "わり算練習をONにしました" : "わり算練習をOFFにしました");
     }
 
     function togglePause(force) {
@@ -1219,6 +1238,7 @@
 
     els.multiplyAttackBtn.addEventListener("click", () => attack("multiply"));
     els.divideAttackBtn.addEventListener("click", () => attack("divide"));
+    els.divisionToggleBtn.addEventListener("click", toggleDivisionPractice);
     els.pauseBtn.addEventListener("click", () => togglePause());
     els.resumeBtn.addEventListener("click", () => togglePause(false));
     els.startBtn.addEventListener("click", startGame);
