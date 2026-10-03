@@ -198,6 +198,13 @@
       text-align: center;
     }
 
+    .castle small {
+      display: block;
+      margin-top: 3px;
+      font-size: 13px;
+      line-height: 1;
+    }
+
     .castle::before {
       content: "";
       position: absolute;
@@ -616,6 +623,7 @@
         font-size: 34px;
       }
       .castle span { font-size: 18px; }
+      .castle small { font-size: 9px; }
       .castle::before {
         width: 70px;
         height: 22px;
@@ -718,7 +726,7 @@
           <div class="meter"><span class="meter-label">スコア</span><span class="meter-value" id="score">0</span></div>
           <div class="meter"><span class="meter-label">コンボ</span><span class="meter-value" id="combo">0</span></div>
           <div class="meter"><span class="meter-label">ライフ</span><span class="meter-value" id="lives">3</span></div>
-          <div class="meter"><span class="meter-label">ステージ</span><span class="meter-value stage-name" id="level">1</span></div>
+          <div class="meter"><span class="meter-label">いまの段</span><span class="meter-value stage-name" id="level">2の段</span></div>
         </div>
 
         <div class="lane"></div>
@@ -976,8 +984,8 @@
       els.score.textContent = state.score;
       els.combo.textContent = state.combo;
       els.lives.textContent = state.lives;
-      els.level.textContent = `${stage.name} ${stage.caption}`;
-      els.castleLabel.innerHTML = `城<br>${stage.name}`;
+      els.level.textContent = stage.caption;
+      els.castleLabel.innerHTML = `城<br><small>STAGE ${stage.name}</small>`;
       els.targetNumber.textContent = state.target;
       els.enemy.style.left = `${Math.max(castleLimit(), state.enemyX)}px`;
       els.multiplyAttackBtn.disabled = !state.running || state.paused || state.over || state.attacking || state.mode !== "multiply";
